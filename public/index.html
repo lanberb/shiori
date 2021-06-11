@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="./assets/styles/index.min.css">
+    <title>SHIORI.</title>
+</head>
+<body>
+    <div id="app">
+        <header>
+            <nav></nav>
+        </header>
+        <main>
+            <div class="shiori-list-timeline"></div>
+            <div class="shiori-list-dropbox"></div>
+        </main>
+    </div>
+    <script async src="./scripts/createElement.js"></script>
+    <script>
+        //要素内のクリックされた位置を取得するグローバル（のような）変数
+        var x;
+        var y;
+        var contents;
+        window.addEventListener('load', () => {
+            fetch('/api/timeline/')
+            .then(res => res.json())
+            .then(data => {
+                contents = data.concat();
+                setTweetTimeline(data);
+            })
+            .then(() => initializeList());
+        });
+        function setTweetTimeline(data) {
+            const list = document.querySelector('.shiori-list-timeline');
+            data.filter(el => el.retweeted == false).forEach(el => {
+                const card = makeCard(el);
+                list.appendChild(card)
+            });
+        }
+        function initializeList(){
+            //要素の取得
+            const elements = document.querySelectorAll(".shiori-list-timeline-unit");
+
+            //マウスが要素内で押されたとき、又はタッチされたとき発火
+            for(var i = 0; i < elements.length; i++) {
+                elements[i].addEventListener("mousedown", mdown, false);
+                elements[i].addEventListener("touchstart", mdown, false);
+            }
+        }
+        //マウスが押された際の関数
+        function mdown(e) {
+            //クローンを生成
+            const clone = this.cloneNode(true);
+            clone.style.position = 'absolute';
+            clone.style.zIndex = 10;
+            clone.classList.add("clone");
+            document.body.appendChild(clone);
+
+            //タッチデイベントとマウスのイベントの差異を吸収
+            if(e.type === "mousedown") var event = e;
+            else var event = e.changedTouches[0];
+
+            //要素内の相対座標を取得
+            x = event.pageX - this.offsetLeft;
+            y = event.pageY - this.offsetTop;
+
+            //ムーブイベントにコールバック
+            document.body.addEventListener("mousemove", mmove, false);
+            document.body.addEventListener("touchmove", mmove, false);
+        }
+
+        //マウスカーソルが動いたときに発火
+        function mmove(e) {
+
+            //ドラッグしている要素を取得
+            const clone = document.querySelector(".clone");
+
+            //同様にマウスとタッチの差異を吸収
+            if(e.type === "mousemove") var event = e;
+            else var event = e.changedTouches[0];
+
+            //フリックしたときに画面を動かさないようにデフォルト動作を抑制
+            e.preventDefault();
+
+            //マウスが動いた場所に要素を動かす
+            clone.style.top = event.pageY - (clone.clientHeight / 2) + "px";
+            clone.style.left = event.pageX - (clone.clientWidth / 2) + "px";
+
+            //マウスボタンが離されたとき、またはカーソルが外れたとき発火
+            clone.addEventListener("mouseup", mup, false);
+            clone.addEventListener("touchend", mup, false);
+            document.body.addEventListener("mouseleave", mup, false);
+            document.body.addEventListener("touchleave", mup, false);
+        }
+
+        //マウスボタンが上がったら発火
+        function mup(e) {
+            const clone = document.querySelector(".clone");
+
+            //ムーブベントハンドラの消去
+            clone.removeEventListener("mouseup", mup, false);
+            clone.removeEventListener("touchend", mup, false);
+            document.body.removeEventListener("mousemove", mmove, false);
+            document.body.removeEventListener("touchmove", mmove, false);
+
+            //ドロップした座標にある要素を取得
+            const dropPoint = document.elementsFromPoint(event.pageX, event.pageY);
+            //ドロップした座標にdropboxが存在するか
+            const isContainsDropbox = dropPoint.map(el => el.className).some(el => el == 'shiori-list-dropbox');
+
+            //ドロップエリア内の子要素を全て取得
+            const dropboxChildren = document.querySelector('.shiori-list-dropbox').children;
+            //ドロップエリア内の子要素にクローンが既に含まれているか
+            const isContainsCloneAlready = !Array.from(dropboxChildren).map(el => el.dataset.tweetId).some(i => i === clone.dataset.tweetId);
+
+            //ドロップした座標にdropboxが存在し && cloneが既に含まれていない場合のみ => dropboxにcloneを追加
+            if (isContainsDropbox && isContainsCloneAlready) {
+                document.querySelector('.shiori-list-dropbox').appendChild(clone);
+                console.log(Array.from(dropboxChildren).map(el => el.dataset.tweetId))
+
+                //position: absolute、クラスを解除
+                clone.removeAttribute('style');
+                clone.removeAttribute('class');
+
+                //クローンとその子要素に、新しくクラスを追加
+                clone.classList.add("shiori-list-dropbox-unit");
+                clone.querySelector('.shiori-list-timeline-icon').classList.add('shiori-list-dropbox-icon');
+                clone.querySelector('.shiori-list-timeline-unit-text').classList.add('shiori-list-dropbox-unit-text');
+
+                //クローンとその子要素内の、timelineクラスを削除
+                clone.querySelector('.shiori-list-timeline-icon').classList.remove('shiori-list-timeline-icon');
+                clone.querySelector('.shiori-list-timeline-unit-text').classList.remove('shiori-list-timeline-unit-text');
+            } 
+            else clone.parentNode.removeChild(clone);
+
+        }
+
+    </script>
+</body>
+</html>
