@@ -17,6 +17,7 @@
             <div class="shiori-list-dropbox"></div>
         </main>
     </div>
+    <script async src="//cdnjs.cloudflare.com/ajax/libs/gsap/latest/TweenMax.min.js"></script>
     <script async src="./scripts/createElement.js"></script>
     <script>
         //要素内のクリックされた位置を取得するグローバル（のような）変数
@@ -27,6 +28,7 @@
             fetch('/api/timeline/')
             .then(res => res.json())
             .then(data => {
+                console.log(data)
                 contents = data.concat();
                 setTweetTimeline(data);
             })
@@ -36,7 +38,7 @@
             const list = document.querySelector('.shiori-list-timeline');
             data.filter(el => el.retweeted == false).forEach(el => {
                 const card = makeCard(el);
-                list.appendChild(card)
+                list.appendChild(card);
             });
         }
         function initializeList(){
@@ -63,8 +65,8 @@
             else var event = e.changedTouches[0];
 
             //要素内の相対座標を取得
-            x = event.pageX - this.offsetLeft;
-            y = event.pageY - this.offsetTop;
+            x = event.pageY - (clone.clientHeight / 2) + "px";
+            y = event.pageX - (clone.clientWidth / 2) + "px";
 
             //ムーブイベントにコールバック
             document.body.addEventListener("mousemove", mmove, false);
@@ -83,6 +85,11 @@
 
             //フリックしたときに画面を動かさないようにデフォルト動作を抑制
             e.preventDefault();
+
+            //ドロップした座標にある要素を取得
+            const dropPoint = document.elementsFromPoint(event.pageX, event.pageY);
+            //ドロップした座標にdropboxが存在するか
+            const isContainsDropbox = dropPoint.map(el => el.className).some(el => el == 'shiori-list-dropbox');
 
             //マウスが動いた場所に要素を動かす
             clone.style.top = event.pageY - (clone.clientHeight / 2) + "px";
@@ -119,6 +126,7 @@
             if (isContainsDropbox && isContainsCloneAlready) {
                 document.querySelector('.shiori-list-dropbox').appendChild(clone);
                 console.log(Array.from(dropboxChildren).map(el => el.dataset.tweetId))
+                document.querySelector('.shiori-list-dropbox').scrollIntoView()
 
                 //position: absolute、クラスを解除
                 clone.removeAttribute('style');

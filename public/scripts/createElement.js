@@ -1,4 +1,5 @@
 const makeCard = el => {
+      console.log(el)
     const span = document.createElement('span');
           span.textContent = el.text;
     const p = document.createElement('p');
@@ -16,4 +17,7 @@ const makeCard = el => {
             card.appendChild(icon);
             card.appendChild(p);
     return card;
+}
+const createImgbox = src => {
+      console.logg(src)
 }

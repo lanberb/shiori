@@ -24,7 +24,7 @@ let params = {
 };
 
 app.get('/api/timeline/', (req, res) => {
-    client.get('statuses/user_timeline', params, (error, tweets, response) =>  {
+    client.get('statuses/home_timeline', params, (error, tweets, response) =>  {
         if (!error) res.send(tweets);
         else res.send([]);
     });
